@@ -30,6 +30,7 @@ import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.EventPublishingException;
 import io.entgra.device.mgt.core.device.mgt.core.DeviceManagementConstants;
+import io.entgra.device.mgt.core.device.mgt.core.report.mgt.Constants;
 import java.io.IOException;
 
 public class HttpReportingUtil {
@@ -47,6 +48,10 @@ public class HttpReportingUtil {
         return System.getProperty(DeviceManagementConstants.Report.REPORTING_EVENT_HOST);
     }
 
+    public static String getBirtReportHost() {
+        return System.getProperty(Constants.BirtReporting.BIRT_REPORTING_HOST);
+    }
+
     public static int invokeApi(String payload, String endpoint) throws EventPublishingException {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
             HttpPost apiEndpoint = new HttpPost(endpoint);
@@ -62,6 +67,16 @@ public class HttpReportingUtil {
         }
     }
 
+    public static String getReportType(String designFile) {
+        if (designFile != null && !designFile.isEmpty()) {
+            switch (designFile) {
+                case Constants.BirtReporting.APP_USAGE:
+                case Constants.BirtReporting.DEVICE_INFO:
+                    return designFile += Constants.BirtReporting.BIRT_RPT_DESIGN_EXT;
+            }
+        }
+        return Constants.BirtReporting.UNSUPPORTED_REPORT_TYPE;
+    }
 
     public static boolean isPublishingEnabledForTenant() {
         Object configuration = DeviceManagerUtil.getConfiguration(IS_EVENT_PUBLISHING_ENABLED);

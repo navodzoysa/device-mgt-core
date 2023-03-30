@@ -164,4 +164,10 @@ public class Constants {
         public static final String AUTHORIZATION = "Authorization";
         public static final String AUTHORIZATION_HEADER_VALUE = "Bearer ";
     }
+
+    public static final class BirtReporting {
+        public static final String BIRT_REPORTING_HOST = "iot.birt.reporting.host";
+        public static final String BIRT_REPORTING_API_REPORT_PATH = "/report/";
+        public static final String UTF8_ENCODING = "UTF-8";
+    }
 }

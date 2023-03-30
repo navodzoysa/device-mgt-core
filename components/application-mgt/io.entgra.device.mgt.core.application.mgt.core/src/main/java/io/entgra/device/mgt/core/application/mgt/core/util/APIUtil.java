@@ -524,4 +524,18 @@ public class APIUtil {
         String iconPath = basePath + Constants.ICON_ARTIFACT + Constants.FORWARD_SLASH + applicationReleaseDTO.getIconName();
         return iconPath;
     }
+
+    public static int getTenantId() {
+        return PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId(true);
+    }
+
+    public static String getBirtReportHost() throws ApplicationManagementException {
+        String host = System.getProperty(Constants.BirtReporting.BIRT_REPORTING_HOST);
+        if (host == null) {
+            String msg = "BIRT reporting host is not defined in the iot-server.sh properly.";
+            log.error(msg);
+            throw new ApplicationManagementException(msg);
+        }
+        return host;
+    }
 }

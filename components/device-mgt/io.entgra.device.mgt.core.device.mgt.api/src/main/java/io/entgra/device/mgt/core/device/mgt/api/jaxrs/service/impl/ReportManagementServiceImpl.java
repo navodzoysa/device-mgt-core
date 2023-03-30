@@ -18,6 +18,7 @@
 
 package io.entgra.device.mgt.core.device.mgt.api.jaxrs.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -28,7 +29,9 @@ import io.entgra.device.mgt.core.device.mgt.common.PaginationResult;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.BadRequestException;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.DeviceTypeNotFoundException;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.ReportManagementException;
+import io.entgra.device.mgt.core.device.mgt.common.report.mgt.ReportParameters;
 import io.entgra.device.mgt.core.device.mgt.core.report.mgt.Constants;
+import io.entgra.device.mgt.core.device.mgt.core.util.HttpReportingUtil;
 import io.entgra.device.mgt.core.device.mgt.api.jaxrs.beans.DeviceList;
 import io.entgra.device.mgt.core.device.mgt.common.ReportFiltersList;
 import io.entgra.device.mgt.core.device.mgt.api.jaxrs.beans.ErrorResponse;
@@ -41,10 +44,12 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.POST;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -325,6 +330,37 @@ public class ReportManagementServiceImpl implements ReportManagementService {
             }
         } catch (ReportManagementException e) {
             String msg = "Error occurred while retrieving device operators.";
+            log.error(msg, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(msg).build();
+        }
+    }
+
+    @POST
+    @Path("/birt/report/generate")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Override
+    public Response generateBirtReport(JsonObject jsonObject) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ReportParameters reportParameters;
+        try {
+            reportParameters = objectMapper.readValue(jsonObject.toString(), ReportParameters.class);
+            String designFile = HttpReportingUtil.getReportType(reportParameters.getDesignFile());
+            if (!Constants.BirtReporting.UNSUPPORTED_REPORT_TYPE.equals(designFile)) {
+                reportParameters.setDesignFile(designFile.toLowerCase());
+                JsonObject birtResponse = DeviceMgtAPIUtils.getReportManagementService().generateBirtReport(reportParameters);
+                return Response.status(Response.Status.OK).entity(birtResponse).build();
+            } else {
+                String msg = "Requested design file not found.";
+                log.error(msg);
+                return Response.status(Response.Status.NOT_FOUND).entity(msg).build();
+            }
+        } catch (IOException e) {
+            String msg = "Error occurred while mapping report parameters.";
+            log.error(msg, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(msg).build();
+        } catch (ReportManagementException e) {
+            String msg = "Error occurred while generating report.";
             log.error(msg, e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(msg).build();
         }
