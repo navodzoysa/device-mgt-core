@@ -185,6 +185,14 @@ public class DeviceTypeManagerService implements DeviceManagementService {
                     }
                     pushNotificationConfig = new PushNotificationConfig(enabledNotifierType, isScheduled, properties);
                 }
+            } else {
+                if (notifierType != null) {
+                    if (notifierType.equals("1")) {
+                        pushNotificationConfig = new PushNotificationConfig(NOTIFIER_TYPE_LOCAL, isScheduled, null);
+                    } else {
+                        pushNotificationConfig = new PushNotificationConfig(notifierType, isScheduled, null);
+                    }
+                }
             }
         } catch (DeviceManagementException e) {
             log.error("Unable to get the " + type + " platform configuration from registry.", e);
