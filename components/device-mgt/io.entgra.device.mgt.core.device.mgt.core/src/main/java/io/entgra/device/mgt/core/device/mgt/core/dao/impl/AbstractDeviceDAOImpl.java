@@ -1094,7 +1094,7 @@ public abstract class AbstractDeviceDAOImpl implements DeviceDAO {
             }
             //Add the query for owner
             if (owner != null && !owner.isEmpty()) {
-                sql = sql + " AND e.OWNER = ?";
+                sql = sql + " AND e.OWNER LIKE ?";
                 isOwnerProvided = true;
             } else if (ownerPattern != null && !ownerPattern.isEmpty()) {
                 sql = sql + " AND e.OWNER LIKE ?";
