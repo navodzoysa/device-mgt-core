@@ -291,9 +291,9 @@ public class ApplicationManagerProviderServiceImpl implements ApplicationManagem
                 deviceDetailsWrapper.setTenantId(tenantId);
                 deviceDetailsWrapper.setDevice(device);
                 deviceDetailsWrapper.setApplications(newApplications);
-                ReportingPublisherManager reportingManager = new ReportingPublisherManager();
-                reportingManager.publishData(deviceDetailsWrapper, DeviceManagementConstants
-                        .Report.APP_USAGE_ENDPOINT);
+
+                HttpReportingUtil.invokeApi(deviceDetailsWrapper.getJSONString(),
+                        reportingHost + DeviceManagementConstants.Report.APP_USAGE_ENDPOINT);
             }
 
         } catch (DeviceManagementDAOException e) {

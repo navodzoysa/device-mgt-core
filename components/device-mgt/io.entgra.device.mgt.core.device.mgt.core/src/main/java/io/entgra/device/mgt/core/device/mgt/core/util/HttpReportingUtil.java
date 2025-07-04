@@ -32,6 +32,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -51,6 +52,24 @@ public class HttpReportingUtil {
         return System.getProperty(DeviceManagementConstants.Report.REPORTING_EVENT_HOST);
     }
 
+    public static int invokeApi(String payload, String endpoint) throws EventPublishingException {
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpPost apiEndpoint = new HttpPost(endpoint);
+            apiEndpoint.setHeader(HTTP.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString());
+            apiEndpoint.setHeader("X-Tenant-ID", String.valueOf(PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId()));
+            StringEntity requestEntity = new StringEntity(
+                    payload, ContentType.APPLICATION_JSON);
+            apiEndpoint.setEntity(requestEntity);
+            HttpResponse response = client.execute(apiEndpoint);
+            return response.getStatusLine().getStatusCode();
+        } catch (ConnectException e) {
+            log.error("Connection refused to API endpoint: " + endpoint, e);
+            return HttpStatus.SC_SERVICE_UNAVAILABLE;
+        } catch (IOException e) {
+            throw new EventPublishingException("Error occurred when " +
+                    "invoking API. API endpoint: " + endpoint, e);
+        }
+    }
 
     public static boolean isPublishingEnabledForTenant() {
         Object configuration = DeviceManagerUtil.getConfiguration(IS_EVENT_PUBLISHING_ENABLED);

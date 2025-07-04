@@ -18,6 +18,7 @@
 
 package io.entgra.device.mgt.core.device.mgt.core.device.details.mgt.impl;
 
+import io.entgra.device.mgt.core.device.mgt.common.exceptions.EventPublishingException;
 import io.entgra.device.mgt.core.device.mgt.core.permission.mgt.PermissionManagerServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.report.mgt.ReportingPublisherManager;
 import org.apache.commons.lang.StringUtils;
@@ -210,34 +211,12 @@ public class DeviceInformationManagerImpl implements DeviceInformationManager {
                     getDeviceManagementProvider().getDevice(deviceIdentifier, false);
             DeviceDetailsWrapper deviceDetailsWrapper = new DeviceDetailsWrapper();
             deviceDetailsWrapper.setEvents(payload);
-            Future<Integer> apiCallback = publishEvents(device, deviceDetailsWrapper, eventType);
-            if (null != apiCallback) {
-                boolean isDebugEnabled = log.isDebugEnabled();
-                while(!apiCallback.isDone()) {
-                    if (isDebugEnabled) {
-                        log.debug("Waiting for the response from the API for the reporting data " +
-                                "publishing for the device " + deviceId + ". Event payload: " + payload);
-                    }
-                }
-                return apiCallback.get();
-            }
-            return 0; // If the event publishing is disabled.
+            return publishEvents(device, deviceDetailsWrapper, eventType);
         } catch (DeviceManagementException e) {
             DeviceManagementDAOFactory.rollbackTransaction();
             String msg = "Event publishing error. Could not get device " + deviceId;
             log.error(msg, e);
             throw new DeviceDetailsMgtException(msg, e);
-        } catch (ExecutionException e) {
-            //Exceptions thrown in ReportingPublisherManager will be wrapped under this exception
-            String message = "Failed while publishing device information data to the reporting service for the device "
-                    + deviceId;
-            log.error(message, e);
-            throw new DeviceDetailsMgtException(message, e);
-        } catch (InterruptedException e) {
-            String message = "Failed while publishing device information data to the reporting service. Thread " +
-                    "interrupted while waiting for the response from the API for the Device " + deviceId;
-            log.error(message, e);
-            throw new DeviceDetailsMgtException(message, e);
         }
     }
 
@@ -246,7 +225,7 @@ public class DeviceInformationManagerImpl implements DeviceInformationManager {
      * @param device Device that is sending event
      * @param deviceDetailsWrapper Payload to send(example, deviceinfo, applist, raw events)
      */
-    private Future<Integer> publishEvents(Device device, DeviceDetailsWrapper deviceDetailsWrapper, String
+    private int publishEvents(Device device, DeviceDetailsWrapper deviceDetailsWrapper, String
             eventType)  {
         String reportingHost = HttpReportingUtil.getReportingHost();
         if (!StringUtils.isBlank(reportingHost)
@@ -283,8 +262,9 @@ public class DeviceInformationManagerImpl implements DeviceInformationManager {
 
                 String eventUrl = reportingHost + DeviceManagementConstants.Report
                         .REPORTING_CONTEXT + DeviceManagementConstants.URL_SEPERATOR + eventType;
-                ReportingPublisherManager reportingManager = new ReportingPublisherManager();
-                return reportingManager.publishData(deviceDetailsWrapper, eventUrl);
+                return HttpReportingUtil.invokeApi(deviceDetailsWrapper.getJSONString(), eventUrl);
+            } catch (EventPublishingException e) {
+                log.error("Error occurred while sending events", e);
             } catch (GroupManagementException e) {
                 log.error("Error occurred while getting group list", e);
             } catch (UserStoreException e) {
@@ -300,7 +280,7 @@ public class DeviceInformationManagerImpl implements DeviceInformationManager {
                         + DeviceManagerUtil.getTenantId());
             }
         }
-        return null;
+        return 0;
     }
 
     @Override
