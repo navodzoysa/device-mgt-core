@@ -291,8 +291,8 @@ public class ApplicationManagerProviderServiceImpl implements ApplicationManagem
                 deviceDetailsWrapper.setTenantId(tenantId);
                 deviceDetailsWrapper.setDevice(device);
                 deviceDetailsWrapper.setApplications(newApplications);
-                ReportingPublisherManager reportingManager = new ReportingPublisherManager();
-                reportingManager.publishData(deviceDetailsWrapper, DeviceManagementConstants
+//                ReportingPublisherManager reportingManager = ReportingPublisherManager();
+                ReportingPublisherManager.getInstance().publishData(deviceDetailsWrapper, DeviceManagementConstants
                         .Report.APP_USAGE_ENDPOINT);
             }
 

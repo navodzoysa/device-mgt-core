@@ -41,29 +41,52 @@ import java.util.concurrent.Future;
 public class ReportingPublisherManager {
 
     private static final Log log = LogFactory.getLog(ReportingPublisherManager.class);
-    private final static ExecutorService executorService;
-    private DeviceDetailsWrapper payload;
-    private String endpoint;
-    private static final PoolingHttpClientConnectionManager poolingManager;
+    private final ExecutorService executorService;
+    private static ReportingPublisherManager instance;
+    private final CloseableHttpClient client;
 
-    static {
+    private ReportingPublisherManager() {
         executorService = Executors.newFixedThreadPool(10); //todo make this configurable
-        poolingManager = new PoolingHttpClientConnectionManager();
+        PoolingHttpClientConnectionManager poolingManager = new PoolingHttpClientConnectionManager();
         poolingManager.setMaxTotal(10); //todo make this configurable
         poolingManager.setDefaultMaxPerRoute(10);
+        client = HttpClients.custom()
+                .setConnectionManager(poolingManager)
+                .build();
+
     }
 
+    public static synchronized ReportingPublisherManager getInstance() {
+        if (instance == null) {
+            instance = new ReportingPublisherManager();
+        }
+        return instance;
+    }
+
+
+//    public Future<Integer> publishData(DeviceDetailsWrapper deviceDetailsWrapper, String eventUrl) {
+//        this.payload = deviceDetailsWrapper;
+//        this.endpoint = eventUrl;
+//        return executorService.submit(new ReportingPublisher());
+//    }
+
     public Future<Integer> publishData(DeviceDetailsWrapper deviceDetailsWrapper, String eventUrl) {
-        this.payload = deviceDetailsWrapper;
-        this.endpoint = eventUrl;
-        return executorService.submit(new ReportingPublisher());
+        return executorService.submit(new ReportingPublisher(deviceDetailsWrapper, eventUrl));
     }
 
     private class ReportingPublisher implements Callable<Integer> {
+        private final DeviceDetailsWrapper payload;
+        private final String endpoint;
+
+        public ReportingPublisher(DeviceDetailsWrapper payload, String endpoint) {
+            this.payload = payload;
+            this.endpoint = endpoint;
+        }
+
         @Override
         public Integer call() throws EventPublishingException {
-            try (CloseableHttpClient client = HttpClients.custom().setConnectionManager(poolingManager).build()) {
-                HttpPost apiEndpoint = new HttpPost(endpoint);
+            HttpPost apiEndpoint = new HttpPost(endpoint);
+            try  {
                 apiEndpoint.setHeader(HTTP.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString());
                 StringEntity requestEntity = new StringEntity(payload.getJSONString(), ContentType.APPLICATION_JSON);
                 apiEndpoint.setEntity(requestEntity);
@@ -81,6 +104,8 @@ public class ReportingPublisherManager {
                 String message = "Error occurred when publishing reporting data to the API: " + endpoint;
                 log.error(message, e);
                 throw new EventPublishingException(message, e);
+            } finally {
+                apiEndpoint.releaseConnection();
             }
         }
     }

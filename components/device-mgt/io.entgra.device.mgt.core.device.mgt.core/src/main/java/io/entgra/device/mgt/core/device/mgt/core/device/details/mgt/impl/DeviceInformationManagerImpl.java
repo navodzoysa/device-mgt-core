@@ -283,8 +283,8 @@ public class DeviceInformationManagerImpl implements DeviceInformationManager {
 
                 String eventUrl = reportingHost + DeviceManagementConstants.Report
                         .REPORTING_CONTEXT + DeviceManagementConstants.URL_SEPERATOR + eventType;
-                ReportingPublisherManager reportingManager = new ReportingPublisherManager();
-                return reportingManager.publishData(deviceDetailsWrapper, eventUrl);
+//                ReportingPublisherManager reportingManager = new ReportingPublisherManager();
+                return ReportingPublisherManager.getInstance().publishData(deviceDetailsWrapper, eventUrl);
             } catch (GroupManagementException e) {
                 log.error("Error occurred while getting group list", e);
             } catch (UserStoreException e) {
