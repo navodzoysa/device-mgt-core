@@ -23,6 +23,8 @@ import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.DeviceStatusMana
 import io.entgra.device.mgt.core.device.mgt.core.authorization.GroupAccessAuthorizationServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.dao.*;
 import io.entgra.device.mgt.core.device.mgt.core.metadata.mgt.DeviceStatusManagementServiceImpl;
+import io.entgra.device.mgt.core.device.mgt.core.report.mgt.config.ReportMgtConfigurationManager;
+import io.entgra.device.mgt.core.device.mgt.core.report.mgt.dao.common.ReportMgtConnectionManager;
 import io.entgra.device.mgt.core.device.mgt.core.service.*;
 import io.entgra.device.mgt.core.server.bootup.heartbeat.beacon.service.HeartBeatManagementService;
 import org.apache.commons.logging.Log;
@@ -160,6 +162,7 @@ public class DeviceManagementServiceComponent {
             OTPManagementDAOFactory.init(dsConfig.getJndiLookupDefinition().getJndiName());
             /*Initialize the device cache*/
             DeviceManagerUtil.initializeDeviceCache();
+            ReportMgtConnectionManager.init(ReportMgtConfigurationManager.getInstance().getConfiguration().getDatasourceName());
 
             PushNotificationProviderRepository pushNotificationRepo = new PushNotificationProviderRepository();
             List<String> pushNotificationProviders = config.getPushNotificationConfiguration()
