@@ -24,7 +24,7 @@ import io.entgra.device.mgt.core.device.mgt.core.report.mgt.config.ReportMgtConf
 import io.entgra.device.mgt.core.device.mgt.core.report.mgt.config.ReportMgtConfigurationManager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -36,10 +36,13 @@ import org.apache.http.protocol.HTTP;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class ReportingPublisherManager {
 
@@ -68,10 +71,36 @@ public class ReportingPublisherManager {
         this.poolingManager.setMaxTotal(config.getMaxConnections());
         this.poolingManager.setDefaultMaxPerRoute(config.getMaxConnectionsPerRoute());
 
+        this.poolingManager.closeIdleConnections(60, TimeUnit.SECONDS);
+
+        // Configure timeouts to prevent hanging connections
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectionRequestTimeout(10000) // 10 seconds to get connection from pool
+                .setConnectTimeout(10000)           // 10 seconds to establish connection
+                .setSocketTimeout(30000)            // 30 seconds to read response
+                .build();
+
+
         this.httpClient = HttpClients.custom()
                 .setConnectionManager(poolingManager)
+                .setDefaultRequestConfig(requestConfig)
                 .build();
+
+        startConnectionMonitor();
+
     }
+
+    private void startConnectionMonitor() {
+        Timer connectionMonitor = new Timer("HttpConnectionMonitor", true);
+        connectionMonitor.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                poolingManager.closeExpiredConnections();
+                poolingManager.closeIdleConnections(60, TimeUnit.SECONDS);
+            }
+        }, 30000, 30000); // Check every 30 seconds
+    }
+
 
     public Future<Integer> publishData(DeviceDetailsWrapper deviceDetailsWrapper, String eventUrl) {
         return executorService.submit(new ReportingPublisher(deviceDetailsWrapper, eventUrl));
